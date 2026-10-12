@@ -7,11 +7,13 @@ on:
       - js
     paths:
       - '**/Makefile'
+      - 'scripts/gen-opkg-index.py'
   pull_request:
     branches:
       - js
     paths:
       - '**/Makefile'
+      - 'scripts/gen-opkg-index.py'
   workflow_dispatch:
 
 jobs:
