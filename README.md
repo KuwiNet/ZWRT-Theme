@@ -1,27 +1,79 @@
-# ZWRT主题 （luci-theme-zwrt）
+# ZWRT 主题（luci-theme-zwrt）
 
-  <p align="center">
+一款基于 [sirpdboy/luci-theme-kucat](https://github.com/sirpdboy/luci-theme-kucat) 二次开发的 OpenWrt / LuCI 主题。**保持原主题完整的前端与 CSS 样式**，在命名、依赖与交互上做了自包含改造：
 
-## 原作者链接： https://github.com/sirpdboy/luci-theme-kucat  
+- 全量改名 `kucat` → `zwrt`，作为独立主题与独立设置插件存在；
+- 主题自带壁纸（Bing / 小鸟 / 本地图）与默认配色；
+- 内置独立的「ZWRT主题设置」界面，**不再依赖官方 `luci-app-advancedplus` / `luci-app-kucat-config`**；
+- 提供持续更新的 opkg 软件源，可在路由器上直接添加并自动更新。
 
-## 这里只是在原主题前端基础上做一点修改
-**仅修改图标和页脚。
-## 用法：
-### 1.安装ZWRT主题（会自动带上依赖的配置插件 luci-app-advancedplus 与 luci-app-zwrt-config）:
-```
+## 组成
+
+本仓库构建产出两个独立软件包：
+
+| 软件包 | 说明 |
+| --- | --- |
+| `luci-theme-zwrt` | 主题本体（前端 / CSS / 壁纸 / 图标） |
+| `luci-app-zwrt` | ZWRT 主题设置插件（提供「系统 → ZWRT主题设置」界面与默认配置） |
+
+> 安装 `luci-theme-zwrt` 会自动带上依赖的 `luci-app-zwrt`。
+
+## 特性
+
+- 完整保留 Kucat 的 CSS 样式：侧栏、卡片、透明/毛玻璃、配色与明暗（auto / light / dark）模式；
+- 内置壁纸源：**Bing**（已切换国内 `cn.bing.com`）、**小鸟壁纸**、**本地图片**，安装后默认开启壁纸；
+- 多套配色预设（栅栏蓝 / 绿 / 炫灰等），可实时切换；
+- 独立设置界面，无需额外安装官方配置插件；
+- GitHub Actions 自动构建 + Release + GitHub Pages 托管 opkg 软件源，可在线升级。
+
+## 快速安装（推荐）
+
+在路由器的终端（或 LuCI「系统 → 软件包」）添加本仓库 opkg 源后安装：
+
+```sh
+# 1) 添加软件源（一次即可，之后可自动更新）
+echo 'src/gz zwrt https://kuwinet.github.io/ZWRT-Theme/all' >> /etc/opkg/customfeeds.conf
+
+# 2) 更新列表并安装
 opkg update
 opkg install luci-theme-zwrt
 ```
-### 2.再在[终端](http://zwrt/cgi-bin/luci/admin/services/ttyd/ttyd)运行：
-Github:
+
+### 使用
+
+1. 安装完成后，进入 LuCI **系统 → 系统 → 语言和界面**，将主题切换为 **ZWRT**；
+2. 进入 **系统 → ZWRT主题设置**，配置壁纸来源（Bing / 小鸟 / 本地）、配色、透明与明暗模式。
+
+### 升级
+
+```sh
+opkg update
+opkg install --force-reinstall luci-theme-zwrt luci-app-zwrt
 ```
-wget --no-check-certificate -O /usr/bin/install_zwrt.sh https://raw.githubusercontent.com/KuwiNet/ZWRT-Theme/js/install-zwrt.sh && chmod +x /usr/bin/install_zwrt.sh && sh /usr/bin/install_zwrt.sh
-```
-Gitee:
-```
-wget --no-check-certificate -O /usr/bin/install_zwrt.sh https://arelay.cn/raw.githubusercontent.com/KuwiNet/ZWRT-Theme/js/install-zwrt.sh && chmod +x /usr/bin/install_zwrt.sh && sh /usr/bin/install_zwrt.sh
-```
+
 ## 本地构建
+
+需要 OpenWrt SDK 环境（本仓库默认使用 `build_auto.sh`）：
+
+```sh
+curl -LO https://raw.githubusercontent.com/KuWiNet/ZWRT-Theme/js/build_auto.sh \
+  && chmod +x build_auto.sh && ./build_auto.sh
 ```
-curl -LO https://raw.githubusercontent.com/KuwiNet/ZWRT-Theme/js/build.sh && chmod +x build.sh && ./build.sh
+
+脚本会调用 `scripts/gen-opkg-index.py` 在 `feeds/all` 下生成 `Packages` / `Packages.gz` / `Packages.manifest` 软件源索引，可直接配合 GitHub Pages 部署为 opkg 源。
+
+## 目录结构
+
+```text
+htdocs/                主题前端资源（css / js / img / 壁纸）
+luci-app-zwrt/         设置插件（controller / JS view / 默认配置 / rpcd ACL）
+scripts/
+  gen-opkg-index.py    生成 opkg 软件源索引
+build_auto.sh          SDK 自动构建脚本
+.github/workflows/     自动构建 + Release + Pages 部署
 ```
+
+## 鸣谢
+
+- 原作者：**sirpdboy** —— [luci-theme-kucat](https://github.com/sirpdboy/luci-theme-kucat)
+- 本仓库为在其基础上的二次开发与维护，版权与许可遵循原项目约定。
