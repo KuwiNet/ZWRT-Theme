@@ -66,7 +66,7 @@ def main(feed_dir):
             "Description: " + ctl.get("Description", "").strip(),
         ]
         blocks.append("\n".join(lines))
-    pkg_text = "\n\n".join(blocks)
+    pkg_text = "\n\n".join(blocks) + "\n\n"
     with open(os.path.join(feed_dir, "Packages"), "w", encoding="utf-8") as f:
         f.write(pkg_text)
     with open(os.path.join(feed_dir, "Packages.gz"), "wb") as f:
