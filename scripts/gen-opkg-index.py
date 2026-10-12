@@ -54,7 +54,6 @@ def main(feed_dir):
             "Package: " + ctl.get("Package", ""),
             "Version: " + ctl.get("Version", ""),
             "Depends: " + ctl.get("Depends", ""),
-            "Status: unknown ok not-installed",
             "Architecture: " + ctl.get("Architecture", ""),
             "Installed-Size: " + ctl.get("Installed-Size", "0"),
             "Filename: " + ipk,
@@ -67,7 +66,7 @@ def main(feed_dir):
             "Description: " + ctl.get("Description", "").strip(),
         ]
         blocks.append("\n".join(lines))
-    pkg_text = "\n\n".join(blocks) + "\n"
+    pkg_text = "\n\n".join(blocks)
     with open(os.path.join(feed_dir, "Packages"), "w", encoding="utf-8") as f:
         f.write(pkg_text)
     with open(os.path.join(feed_dir, "Packages.gz"), "wb") as f:
