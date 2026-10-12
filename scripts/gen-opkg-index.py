@@ -54,7 +54,6 @@ def main(feed_dir):
             "Package: " + ctl.get("Package", ""),
             "Version: " + ctl.get("Version", ""),
             "Depends: " + ctl.get("Depends", ""),
-            "Status: unknown ok not-installed",
             "Architecture: " + ctl.get("Architecture", ""),
             "Installed-Size: " + ctl.get("Installed-Size", "0"),
             "Filename: " + ipk,
