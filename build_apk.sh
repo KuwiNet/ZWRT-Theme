@@ -69,7 +69,7 @@ for a in "${ARCHS[@]}"; do
   d="apk-feed/$a"
   mkdir -p "$d"
   cp "$APK" "$d/"
-  ( cd "$d" && "$APKTOOL" index --output packages.adb *.apk && echo "  ok: $a" ) || { echo "index 失败 arch=$a" >&2; exit 1; }
+  ( cd "$d" && "$APKTOOL" index --allow-untrusted --output packages.adb *.apk && echo "  ok: $a" ) || { echo "index 失败 arch=$a" >&2; exit 1; }
 done
 
 echo "=== Step 9: 输出 ==="
