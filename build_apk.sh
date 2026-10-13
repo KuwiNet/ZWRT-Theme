@@ -22,7 +22,7 @@ echo "SDK: $SDK_URL"
 
 if [ ! -d openwrt-sdk ]; then
   echo "⬇️ 下载 SDK（约 290MB）..."
-  curl -sL "$SDK_URL" -o sdk.tar.zst
+  curl -sL --retry 3 --retry-delay 5 "$SDK_URL" -o sdk.tar.zst || { echo "SDK 下载失败" >&2; exit 1; }
   tar --zstd -xf sdk.tar.zst
   mv openwrt-sdk-* openwrt-sdk
 fi
@@ -36,10 +36,11 @@ done
 
 cd openwrt-sdk
 echo "=== Step 5: 更新 luci feed 并编译 ==="
-./scripts/feeds update luci >/dev/null 2>&1 || ./scripts/feeds update -a
-./scripts/feeds install -p luci luci-base >/dev/null 2>&1 || true
+./scripts/feeds update luci || ./scripts/feeds update -a
+./scripts/feeds install -p luci luci-base || true
 make defconfig >/dev/null 2>&1 || true
-make package/luci-theme-zwrt/compile V=s
+echo "--- 开始编译（V=99 完整输出） ---"
+make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
 cd -
 
 echo "=== Step 6: 定位 APK 产物 ==="
@@ -65,7 +66,7 @@ for a in "${ARCHS[@]}"; do
   d="apk-feed/$a"
   mkdir -p "$d"
   cp "$APK" "$d/"
-  ( cd "$d" && "$APKTOOL" mkndx --root . --allow-untrusted --output packages.adb *.apk && echo "  ok: $a" )
+  ( cd "$d" && "$APKTOOL" mkndx --output packages.adb *.apk && echo "  ok: $a" ) || { echo "mkndx 失败 arch=$a" >&2; exit 1; }
 done
 
 echo "=== Step 9: 输出 ==="
