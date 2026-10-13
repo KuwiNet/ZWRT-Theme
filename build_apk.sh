@@ -42,32 +42,31 @@ echo "=== Step 5: 全量更新 feeds（含 base）并编译 ==="
 make defconfig >/dev/null 2>&1 || true
 echo "--- 开始编译（V=99 完整输出） ---"
 make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
+echo "--- 生成 apk 源索引（make package/index → packages.adb，官方标准） ---"
+make package/index V=99 2>&1 | tail -30 || true
 cd -
 
-echo "=== Step 6: 定位 APK 产物 ==="
+echo "=== Step 6: 定位 APK 产物与 packages.adb 索引 ==="
 APK=$(find openwrt-sdk/bin/packages -name "luci-theme-zwrt*.apk" | head -1)
+ADB=$(find openwrt-sdk/bin/packages -name "packages.adb" | head -1)
 [ -z "$APK" ] && { echo "未找到 luci-theme-zwrt.apk" >&2; exit 1; }
-echo "APK: $APK"
-ls -lh "$APK"
+[ -z "$ADB" ] && { echo "未找到 packages.adb（make package/index 未生成）" >&2; exit 1; }
+echo "APK: $APK"; ls -lh "$APK"
+echo "ADB: $ADB"; ls -lh "$ADB"
 
-echo "=== Step 7: 使用 SDK 自带 apk-tools（版本与 apk 格式一致，可读取构建产物） ==="
-APKTOOL="$PWD/openwrt-sdk/staging_dir/host/bin/apk"
-chmod +x "$APKTOOL" 2>/dev/null || true
-"$APKTOOL" --version || true
-
-echo "=== Step 8: 生成多架构 apk 源（all 包复制进各架构目录） ==="
+echo "=== Step 7: 生成多架构 apk 源（复制 apk + packages.adb 到各架构目录） ==="
 ARCHS=(x86_64 aarch64_cortex-a53 aarch64_cortex-a72 aarch64_cortex-a76 \
        aarch64_generic arm_cortex-a7 arm_cortex-a9 mips_24kc mipsel_24kc riscv64_riscv64)
-SDKKEYS="$PWD/openwrt-sdk"   # 含 key-build.pub，让 apk index 信任 SDK 对包的签名
 rm -rf apk-feed
 for a in "${ARCHS[@]}"; do
   d="apk-feed/$a"
   mkdir -p "$d"
   cp "$APK" "$d/"
-  ( cd "$d" && "$APKTOOL" --keys-dir "$SDKKEYS" index --output packages.adb *.apk && echo "  ok: $a" ) || { echo "index 失败 arch=$a" >&2; exit 1; }
+  cp "$ADB" "$d/packages.adb"
+  echo "  ok: $a"
 done
 
-echo "=== Step 9: 输出 ==="
+echo "=== Step 8: 输出 ==="
 find apk-feed -name packages.adb | sort
 echo "APK_RELEASE_TAG=luci-theme-zwrt-${PKG_VERSION}" >> $GITHUB_ENV
 echo "APK_FEED_DIR=$PWD/apk-feed" >> $GITHUB_ENV
