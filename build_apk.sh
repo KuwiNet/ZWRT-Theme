@@ -35,11 +35,10 @@ for item in Makefile htdocs luasrc ucode root doc README.md; do
 done
 
 cd openwrt-sdk
-echo "=== Step 5: 更新 luci/packages feed 并编译 ==="
-# lucihttp(luci-base 依赖)需要 lua 头文件，lua 包在 packages feed，必须一起更新
-./scripts/feeds update luci packages || ./scripts/feeds update -a
+echo "=== Step 5: 全量更新 feeds（含 base）并编译 ==="
+# lua/libubox/ucode/rpcd 等在 base feed，必须 update -a，否则缺 lua.h 编译失败
+./scripts/feeds update -a
 ./scripts/feeds install -p luci luci-base
-./scripts/feeds install -p packages lua || true
 make defconfig >/dev/null 2>&1 || true
 echo "--- 开始编译（V=99 完整输出） ---"
 make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
