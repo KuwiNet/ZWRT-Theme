@@ -82,6 +82,22 @@ jobs:
           path: ${{ env.APK_FEED_DIR }}
           retention-days: 90
 
+      - name: 创建 GitHub Release（APK）
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.APK_RELEASE_TAG }}-apk
+          name: ZWRT 主题 ${{ env.APK_RELEASE_TAG }} (APK)
+          body: |
+            ## ZWRT 主题 APK 软件源（官方主线/25.x apk 固件）
+            - 版本: ${{ env.APK_RELEASE_TAG }}
+            - 架构目录: x86_64 / aarch64_cortex-a53 / aarch64_cortex-a72 / aarch64_cortex-a76 / aarch64_generic / arm_cortex-a7 / arm_cortex-a9 / mips_24kc / mipsel_24kc / riscv64_riscv64
+            - APK 源（配置后 apk add 自动更新）: https://kuwinet.github.io/ZWRT-Theme/apk
+          files: |
+            ${{ env.APK_TAR }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # 把 ipk 生成 opkg 索引并部署到 GitHub Pages，作为可更新的软件源
   publish-pages:
     runs-on: ubuntu-latest
