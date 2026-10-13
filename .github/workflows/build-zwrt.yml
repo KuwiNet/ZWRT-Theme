@@ -63,13 +63,6 @@ jobs:
           path: ${{ env.APK_FEED_DIR }}
           retention-days: 90
 
-      - name: 上传 APK 打包产物（供 Release）
-        uses: actions/upload-artifact@v4
-        with:
-          name: zwrt-apk-tar
-          path: ${{ env.APK_TAR }}
-          retention-days: 90
-
   # 把 ipk 生成 opkg 索引并部署到 GitHub Pages，作为可更新的软件源
   publish-pages:
     runs-on: ubuntu-latest
@@ -98,12 +91,6 @@ jobs:
           name: zwrt-apk-feed
           path: feeds/apk
 
-      - name: 下载 APK 打包产物
-        uses: actions/download-artifact@v4
-        with:
-          name: zwrt-apk-tar
-          path: ./release
-
       - name: 读取版本号
         id: ver
         run: echo "TAG=v$(grep '^PKG_VERSION' Makefile | head -1 | sed 's/^PKG_VERSION[^0-9]*//' | tr -d ' \r')" >> $GITHUB_ENV
@@ -122,7 +109,6 @@ jobs:
           files: |
             feeds/all/*.ipk
             feeds/apk/*/*.apk
-            release/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
