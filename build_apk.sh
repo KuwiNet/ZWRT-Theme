@@ -50,26 +50,21 @@ APK=$(find openwrt-sdk/bin/packages -name "luci-theme-zwrt*.apk" | head -1)
 echo "APK: $APK"
 ls -lh "$APK"
 
-echo "=== Step 7: 获取 apk 索引工具（apk-tools 3.x，生成 packages.adb） ==="
-# OpenWrt main 用 apk-tools 3.x（索引为 packages.adb 二进制 adb 格式）
-# Alpine v3.21 的 2.14.6 只能生成 APKINDEX.tar.gz，格式不兼容，须用 edge 的 3.0.8
-APKSTAT=$(curl -s "https://dl-cdn.alpinelinux.org/alpine/edge/main/x86_64/" | grep -o 'apk-tools-static-[^"]*\.apk' | head -1)
-[ -z "$APKSTAT" ] && APKSTAT="apk-tools-static-3.0.8-r0.apk"
-curl -sL "https://dl-cdn.alpinelinux.org/alpine/edge/main/x86_64/$APKSTAT" -o apk-static.apk
-mkdir -p apkbin && tar -xzf apk-static.apk -C apkbin sbin/apk.static
-APKTOOL="$PWD/apkbin/sbin/apk.static"
-chmod +x "$APKTOOL"
+echo "=== Step 7: 使用 SDK 自带 apk-tools（版本与 apk 格式一致，可读取构建产物） ==="
+APKTOOL="$PWD/openwrt-sdk/staging_dir/host/bin/apk"
+chmod +x "$APKTOOL" 2>/dev/null || true
 "$APKTOOL" --version || true
 
 echo "=== Step 8: 生成多架构 apk 源（all 包复制进各架构目录） ==="
 ARCHS=(x86_64 aarch64_cortex-a53 aarch64_cortex-a72 aarch64_cortex-a76 \
        aarch64_generic arm_cortex-a7 arm_cortex-a9 mips_24kc mipsel_24kc riscv64_riscv64)
+SDKKEYS="$PWD/openwrt-sdk"   # 含 key-build.pub，让 apk index 信任 SDK 对包的签名
 rm -rf apk-feed
 for a in "${ARCHS[@]}"; do
   d="apk-feed/$a"
   mkdir -p "$d"
   cp "$APK" "$d/"
-  ( cd "$d" && "$APKTOOL" --allow-untrusted index --output packages.adb *.apk && echo "  ok: $a" ) || { echo "index 失败 arch=$a" >&2; exit 1; }
+  ( cd "$d" && "$APKTOOL" --keys-dir "$SDKKEYS" index --output packages.adb *.apk && echo "  ok: $a" ) || { echo "index 失败 arch=$a" >&2; exit 1; }
 done
 
 echo "=== Step 9: 输出 ==="
