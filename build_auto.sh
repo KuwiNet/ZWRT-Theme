@@ -54,16 +54,8 @@ rm -rf "$SDK_DIR/package/luci-theme-zwrt" 2>/dev/null || true
 mkdir -p "$SDK_DIR/package/luci-theme-zwrt"
 
 # 主题源 = 仓库根（排除 .git / .github 子目录）
-for item in Makefile htdocs ucode root doc README.md build.sh build_auto.sh install-zwrt.sh; do
+for item in Makefile htdocs luasrc ucode root doc README.md build.sh build_auto.sh install-zwrt.sh; do
   [ -e "$item" ] && cp -r "$item" "$SDK_DIR/package/luci-theme-zwrt/"
-done
-
-# 设置插件 luci-app-zwrt
-echo "📂 复制设置插件到 SDK..."
-rm -rf "$SDK_DIR/package/luci-app-zwrt" 2>/dev/null || true
-mkdir -p "$SDK_DIR/package/luci-app-zwrt"
-for item in Makefile luasrc root htdocs; do
-  [ -e "luci-app-zwrt/$item" ] && cp -r "luci-app-zwrt/$item" "$SDK_DIR/package/luci-app-zwrt/"
 done
 
 cd "$SDK_DIR"
@@ -81,13 +73,10 @@ cd - > /dev/null
 echo "✅ 最小依赖安装完成"
 
 # -------------------------------
-# Step 5: 编译主题 + 设置插件
+# Step 5: 编译主题（含内置设置界面）
 # -------------------------------
-echo "⚙️ 开始编译主题..."
+echo "⚙️ 开始编译主题（含内置设置界面）..."
 make -C "$SDK_DIR" package/luci-theme-zwrt/compile V=s
-
-echo "⚙️ 开始编译设置插件..."
-make -C "$SDK_DIR" package/luci-app-zwrt/compile V=s
 
 # -------------------------------
 # Step 6: 查找并验证编译生成的 IPK
@@ -135,21 +124,9 @@ echo -e "\n🎉 构建成功！最终文件信息："
 ls -lh "$IPK_REAL_SRC"
 echo "📁 主题输出路径：$IPK_REAL_SRC"
 
-# 查找设置插件 IPK
-APP_IPK_GLOB="$OUTPUT_DIR/luci-app-zwrt_${PKG_VERSION}_*.ipk"
-APP_IPK_REAL_SRC=$(ls $APP_IPK_GLOB 2>/dev/null | head -n1 | xargs realpath 2>/dev/null)
-if [ ! -f "$APP_IPK_REAL_SRC" ]; then
-  echo "❌ 错误：未找到设置插件 .ipk！期望：$APP_IPK_GLOB" >&2
-  find "$SDK_DIR/bin/packages" -type f -name "luci-app-zwrt_*.ipk" -ls 2>/dev/null || echo "无"
-  exit 1
-fi
-echo "📁 设置插件输出路径：$APP_IPK_REAL_SRC"
-ls -lh "$APP_IPK_REAL_SRC"
-
 # 导出版本号到 GitHub 环境变量
 echo "RELEASE_TAG=luci-theme-zwrt-${FULL_VERSION}" >> $GITHUB_ENV
 echo "IPK_PATH=$IPK_REAL_SRC" >> $GITHUB_ENV  # 导出IPK路径方便后续处理
-echo "APP_IPK_PATH=$APP_IPK_REAL_SRC" >> $GITHUB_ENV
 
 # -------------------------------
 # 清理函数（可选）

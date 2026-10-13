@@ -2,7 +2,10 @@
     "luci-theme-zwrt": {
         "description": "Grant UCI access for luci-theme-zwrt",
         "read": {
-		"file": {
+			"ubus": {
+				"luci.zwrtget": [ "get_auto_theme", "get_url", "get_word" ]
+			},
+			"file": {
 				"/www/luci-static/zwrt/background/*": [ "list", "read" ],
 				"/www/luci-static/resources/background/*": [ "list", "read" ],
 				"/usr/libexec/rpcd/luci.zwrtget": [ "exec" ],

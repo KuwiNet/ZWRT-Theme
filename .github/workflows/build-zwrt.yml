@@ -42,7 +42,6 @@ jobs:
           name: luci-theme-zwrt-ipk
           path: |
             ${{ env.IPK_PATH }}
-            ${{ env.APP_IPK_PATH }}
           retention-days: 90
 
       - name: 创建GitHub Release
@@ -57,12 +56,10 @@ jobs:
             - 构建时间: ${{ github.event.head_commit.timestamp }}
             - 提交哈希: ${{ github.sha }}
             - 主题 ipk: ${{ env.IPK_PATH }}
-            - 设置插件 ipk: ${{ env.APP_IPK_PATH }}
-            - 依赖（自包含）: 无需外部配置插件，自带壁纸下载与默认配色；设置界面由 luci-app-zwrt 提供
+            - 依赖（自包含）: 单包内置壁纸下载、默认配色与设置界面，无需外部配置插件
             - opkg 软件源（添加后自动更新）: https://kuwinet.github.io/ZWRT-Theme/all
           files: |
             ${{ env.IPK_PATH }}
-            ${{ env.APP_IPK_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

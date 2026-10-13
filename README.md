@@ -2,21 +2,20 @@
 
 一款基于 [sirpdboy/luci-theme-kucat](https://github.com/sirpdboy/luci-theme-kucat) 二次开发的 OpenWrt / LuCI 主题。**保持原主题完整的前端与 CSS 样式**，在命名、依赖与交互上做了自包含改造：
 
-- 全量改名 `kucat` → `zwrt`，作为独立主题与独立设置插件存在；
+- 全量改名 `kucat` → `zwrt`，作为独立主题存在（设置界面内置）；
 - 主题自带壁纸（Bing / 小鸟 / 本地图）与默认配色；
 - 内置独立的「ZWRT主题设置」界面，**不再依赖官方 `luci-app-advancedplus` / `luci-app-kucat-config`**；
 - 提供持续更新的 opkg 软件源，可在路由器上直接添加并自动更新。
 
 ## 组成
 
-本仓库构建产出两个独立软件包：
+本仓库构建产出**一个自包含软件包**：
 
 | 软件包 | 说明 |
 | --- | --- |
-| `luci-theme-zwrt` | 主题本体（前端 / CSS / 壁纸 / 图标） |
-| `luci-app-zwrt` | ZWRT 主题设置插件（提供「系统 → ZWRT主题设置」界面与默认配置） |
+| `luci-theme-zwrt` | 主题本体（前端 / CSS / 壁纸 / 图标）+ 内置「系统 → ZWRT主题设置」界面与默认配置 |
 
-> 安装 `luci-theme-zwrt` 会自动带上依赖的 `luci-app-zwrt`。
+> 设置界面已内置于主题包，安装 `luci-theme-zwrt` 即可全部使用。
 
 ## 特性
 
@@ -48,7 +47,7 @@ opkg install luci-theme-zwrt
 
 ```sh
 opkg update
-opkg install --force-reinstall luci-theme-zwrt luci-app-zwrt
+opkg install --force-reinstall luci-theme-zwrt
 ```
 
 ## 本地构建
@@ -65,8 +64,9 @@ curl -LO https://raw.githubusercontent.com/KuWiNet/ZWRT-Theme/js/build_auto.sh \
 ## 目录结构
 
 ```text
-htdocs/                主题前端资源（css / js / img / 壁纸）
-luci-app-zwrt/         设置插件（controller / JS view / 默认配置 / rpcd ACL）
+htdocs/                主题前端资源（css / js / img / 壁纸 / 设置界面 view）
+luasrc/                 controller（「ZWRT主题设置」菜单）
+root/                   uci-defaults / 默认配置 / 壁纸 rpcd / rpcd ACL
 scripts/
   gen-opkg-index.py    生成 opkg 软件源索引
 build_auto.sh          SDK 自动构建脚本
