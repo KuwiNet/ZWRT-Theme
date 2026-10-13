@@ -47,7 +47,6 @@ jobs:
   # 用官方 OpenWrt 主线 SDK 构建 APK，并按主流架构生成 apk 软件源（供官方 25.x/主线 apk 固件）
   build-apk:
     runs-on: ubuntu-latest
-    needs: [build]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -64,28 +63,12 @@ jobs:
           path: ${{ env.APK_FEED_DIR }}
           retention-days: 90
 
-      - name: 下载 IPK 产物
-        uses: actions/download-artifact@v4
+      - name: 上传 APK 打包产物（供 Release）
+        uses: actions/upload-artifact@v4
         with:
-          name: luci-theme-zwrt-ipk
-          path: ./ipk
-
-      - name: 创建 GitHub Release
-        if: github.event_name != 'pull_request'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.APK_RELEASE_TAG }}
-          name: ZWRT 主题 ${{ env.APK_RELEASE_TAG }}
-          body: |
-            ## ZWRT 主题 ${{ env.APK_RELEASE_TAG }}
-            - IPK（opkg）与 APK（官方主线 apk 固件）双格式
-            - opkg 源: https://kuwinet.github.io/ZWRT-Theme/all
-            - APK 源: https://kuwinet.github.io/ZWRT-Theme/apk
-          files: |
-            ./ipk/*.ipk
-            ${{ env.APK_TAR }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: zwrt-apk-tar
+          path: ${{ env.APK_TAR }}
+          retention-days: 90
 
   # 把 ipk 生成 opkg 索引并部署到 GitHub Pages，作为可更新的软件源
   publish-pages:
@@ -93,7 +76,7 @@ jobs:
     needs: [build, build-apk]
     if: github.event_name != 'pull_request'
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
     environment:
@@ -114,6 +97,33 @@ jobs:
         with:
           name: zwrt-apk-feed
           path: feeds/apk
+
+      - name: 下载 APK 打包产物
+        uses: actions/download-artifact@v4
+        with:
+          name: zwrt-apk-tar
+          path: ./release
+
+      - name: 读取版本号
+        id: ver
+        run: echo "TAG=v$(grep '^PKG_VERSION' Makefile | head -1 | sed 's/^PKG_VERSION[^0-9]*//' | tr -d ' \r')" >> $GITHUB_ENV
+
+      - name: 创建 GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: ZWRT 主题 ${{ env.TAG }}
+          body: |
+            ## ZWRT 主题 ${{ env.TAG }}
+            - IPK（opkg）与 APK（官方主线 apk 固件）双格式
+            - opkg 源: https://kuwinet.github.io/ZWRT-Theme/all
+            - APK 源: https://kuwinet.github.io/ZWRT-Theme/apk
+          files: |
+            feeds/all/*.ipk
+            release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 生成 opkg 软件源索引
         run: |
