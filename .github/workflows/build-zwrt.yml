@@ -121,6 +121,7 @@ jobs:
             - APK 源: https://kuwinet.github.io/ZWRT-Theme/apk
           files: |
             feeds/all/*.ipk
+            feeds/apk/*/*.apk
             release/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
