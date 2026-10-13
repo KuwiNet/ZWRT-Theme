@@ -86,7 +86,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.APK_RELEASE_TAG }}-apk
+          tag_name: ${{ env.APK_RELEASE_TAG }}
           name: ZWRT 主题 ${{ env.APK_RELEASE_TAG }} (APK)
           body: |
             ## ZWRT 主题 APK 软件源（官方主线/25.x apk 固件）

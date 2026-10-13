@@ -68,7 +68,7 @@ done
 
 echo "=== Step 8: 输出 ==="
 find apk-feed -name packages.adb | sort
-echo "APK_RELEASE_TAG=luci-theme-zwrt-${PKG_VERSION}" >> $GITHUB_ENV
+echo "APK_RELEASE_TAG=v${PKG_VERSION}" >> $GITHUB_ENV
 echo "APK_FEED_DIR=$PWD/apk-feed" >> $GITHUB_ENV
 tar -czf apk-feed.tar.gz apk-feed
 echo "APK_TAR=$PWD/apk-feed.tar.gz" >> $GITHUB_ENV
