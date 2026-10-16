@@ -5,7 +5,7 @@ return L.view.extend({
 	render: function() {
 		var m, s, o;
 
-		m = new form.Map('zwrt', _('ZWRT设置'), _('ZWRT 主题外观设置'));
+		m = new form.Map('zwrt', _('ZWRT主题设置'), _('ZWRT 主题外观设置'));
 
 		s = m.section(form.NamedSection, 'basic', 'basic', _('基本设置'));
 		s.addremove = false;

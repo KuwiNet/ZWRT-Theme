@@ -4,7 +4,7 @@
 
 - 全量改名 `kucat` → `zwrt`，作为独立主题存在（设置界面内置）；
 - 主题自带壁纸（Bing / 小鸟 / 本地图）与默认配色；
-- 内置独立的「ZWRT设置」界面；
+- 内置独立的「ZWRT主题设置」界面；
 - 提供持续更新的 opkg 软件源，可在路由器上直接添加并自动更新。
 
 ## 组成
@@ -13,7 +13,7 @@
 
 | 软件包 | 说明 |
 | --- | --- |
-| `luci-theme-zwrt` | 主题本体（前端 / CSS / 壁纸 / 图标）+ 内置「系统 → ZWRT设置」界面与默认配置 |
+| `luci-theme-zwrt` | 主题本体（前端 / CSS / 壁纸 / 图标）+ 内置「系统 → ZWRT主题设置」界面与默认配置 |
 
 > 设置界面已内置于主题包，安装 `luci-theme-zwrt` 即可全部使用。
 
@@ -41,7 +41,7 @@ opkg install luci-theme-zwrt
 ### 使用
 
 1. 安装完成后，进入 LuCI **系统 → 系统 → 语言和界面**，将主题切换为 **ZWRT**；
-2. 进入 **系统 → ZWRT设置**，配置壁纸来源（Bing / 小鸟 / 本地）、配色、透明与明暗模式。
+2. 进入 **系统 → ZWRT主题设置**，配置壁纸来源（Bing / 小鸟 / 本地）、配色、透明与明暗模式。
 
 ### 升级
 
@@ -65,7 +65,7 @@ curl -LO https://raw.githubusercontent.com/KuWiNet/ZWRT-Theme/js/build_auto.sh \
 
 ```text
 htdocs/                主题前端资源（css / js / img / 壁纸 / 设置界面 view）
-luasrc/                 controller（「ZWRT设置」菜单）
+luasrc/                 controller（「ZWRT主题设置」菜单）
 root/                   uci-defaults / 默认配置 / 壁纸 rpcd / rpcd ACL
 scripts/
   gen-opkg-index.py    生成 opkg 软件源索引
