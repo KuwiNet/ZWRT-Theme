@@ -70,6 +70,7 @@ return L.view.extend({
 		o.value('passwall', _('PassWall'));
 		o.value('passwall2', _('PassWall2'));
 		o.value('shadowsocksr', _('SSR'));
+		o.value('bypass', _('Bypass'));
 		o.value('mosdns', _('MosDNS'));
 		o.value('smartdns', _('SmartDNS'));
 		o.value('AdGuardHome', _('AdGuard Home'));
