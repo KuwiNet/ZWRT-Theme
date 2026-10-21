@@ -35,7 +35,7 @@ let zwrt = '';
 let showword = "";
 
 let primary_rgbm = '45,102,147', primary_rgbbody = '244,245,247',primary_rgbm_ts = '0.8', primary_opacity = '0', primary_rgbs = '132,188,218', primary_rgbs_ts = '0.1', mode = 'auto';
-let gohome = bar + "status/", gouser = bar + "system/", gossr = bar + "services/", bgqs = '1', setbar = '1', dayword = '0';
+let gohome = bar + "status/overview", gouser = bar + "system/system/", gossr = "", bgqs = '1', setbar = '1', dayword = '0';
 let background = '0', bkuse = '0', bklock = '1', fontd = '0.92rem', fontz = '0.875rem', fontx = '0.825rem' , font3d = '0', boxshadow = '0';
 let bg_url = media + "/img/bg1.jpg";
 
@@ -54,9 +54,9 @@ if (config_exists && zwrt) {
         primary_rgbs = config.primary_rgbs || "132,188,218";
         primary_rgbs_ts = config.primary_rgbs_ts || "0.1";
         mode = config.mode || "light";
-        gohome = bar + "status/" + config.gohome|| bar + "status/";
-        gouser = bar + "system/" + config.gouser|| bar + "system/";
-        gossr = bar + "services/" + config.gossr || bar + "services/";
+        gohome = (config.gohome) ? bar + "status/" + config.gohome : bar + "status/overview";
+        gouser = (config.gouser) ? bar + "system/" + config.gouser : bar + "system/system";
+        gossr = (config.gossr) ? bar + "services/" + config.gossr : "";
         bgqs = config.bgqs || "1";
         setbar = config.setbar || "1";
         dayword = config.dayword || "0";
@@ -290,7 +290,9 @@ class="lang_{{ dispatcher.lang }} {{ ctx.authsession ? 'logged-in' : '' }} {{ le
             <a class="labelbar pdboy-closebar" href="javascript:void(0)" onclick="pdclosebar()" title="{{ _('Close') }}"></a>
             <a class="labelbar pdboy-gohome" href="{{ gohome }}" title="{{ _('Status') }}"></a>
             <a class="labelbar pdboy-goadvanced" href="{{ gouser }}" title="{{ _('System') }}"></a>
-            <a class="labelbar pdboy-gossr" href="{{ gossr }}" title="{{ _('Services') }}"></a>
+            {% if (gossr != ""): %}
+            <a class="labelbar pdboy-gossr" href="{{ gossr }}" title="{{ _('科学上网') }}"></a>
+            {% endif %}
             <a class="labelbar pdboy-gonet" href="{{ dispatcher.build_url("admin/network/network") }}" title="{{ _('Network') }}"></a>
             <a class="labelbar pdboy-gopoweroff" href="{{ dispatcher.build_url("admin/system/reboot") }}" title="{{ _('Reboot') }}"></a>
         </div>
