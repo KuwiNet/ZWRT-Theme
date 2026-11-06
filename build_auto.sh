@@ -79,6 +79,15 @@ fi
 echo "🔄 更新全部 feeds（克隆 feed 目录）..."
 ./scripts/feeds update -a
 
+# 23.05 固定的 luci 版本里，lemon 用 `cc -o contrib/lemon` 编译；GCC 15 默认 -std=gnu23，
+# C23 中 "void f();" 等价于 (void)，lemon.c 的 K&R 空括号声明会和后面带 struct lemon *
+# 参数的定义冲突，导致 luci-base host 编译失败。上游后续就是给这条规则补 -std=gnu17 修掉的。
+LUCIMK=feeds/luci/modules/luci-base/src/Makefile
+if [ -f "$LUCIMK" ] && grep -q 'cc -o contrib/lemon' "$LUCIMK"; then
+  sed -i 's|cc -o contrib/lemon |cc -std=gnu17 -o contrib/lemon |' "$LUCIMK"
+  echo "✅ 已给 lemon 编译规则补 -std=gnu17（同上游修法）"
+fi
+
 echo "📦 安装主题构建所需依赖 (luci-base)..."
 ./scripts/feeds install -p luci luci-base
 
