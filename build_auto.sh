@@ -61,20 +61,24 @@ done
 cd "$SDK_DIR"
 
 # runner 镜像（Ubuntu 25.10+）默认把 coreutils 换成 uutils（Rust 版），install --version 不含 GNU，
-# 会让 OpenWrt 预检报 "Please install GNU 'install'"。FORCE=1 对 prepare-tmpinfo 里的 .prereq-build 不生效，
-# 所以这里先尝试换成 GNU 实现；换不到就直接 touch 预检戳记跳过整套 host 依赖检查（依赖已由 workflow apt 装好）。
+# 23.05 的 host 预检会报 "Please install GNU 'install'"。预检不能跳过——它同时负责在
+# staging_dir/host/bin 里生成 gcc 等宿主工具软链，跳过会让后续编译找不到编译器。
+# 所以这里先尝试真装 GNU 版；失败则放一个只伪装 --version、其余原样转发的垫片，让预检正常跑完。
 if ! install --version 2>/dev/null | grep -q 'GNU'; then
   echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)）：$(install --version 2>&1 | head -1)"
   sudo apt-get install -y coreutils-from-gnu >/dev/null 2>&1 || sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
   hash -r
 fi
-if install --version 2>/dev/null | grep -q 'GNU'; then
-  echo "✅ GNU install 就绪"
-else
-  echo "⚠️ 仍无 GNU install，跳过 OpenWrt host 预检（touch staging_dir/host/.prereq-build）"
-  mkdir -p staging_dir/host
-  touch staging_dir/host/.prereq-build
+if ! install --version 2>/dev/null | grep -q 'GNU'; then
+  echo "⚠️ 仍无 GNU install，使用 GNU 版本垫片（真实安装仍由系统 install 执行）"
+  mkdir -p /tmp/gnu-install-shim
+  printf '%s\n' '#!/bin/sh' \
+    'if [ "$1" = "--version" ]; then echo "install (GNU coreutils) 9.5"; exit 0; fi' \
+    'exec /usr/bin/install "$@"' > /tmp/gnu-install-shim/install
+  chmod +x /tmp/gnu-install-shim/install
+  export PATH="/tmp/gnu-install-shim:$PATH"
 fi
+install --version 2>/dev/null | grep -q 'GNU' && echo "✅ GNU install 就绪（预检将完整执行）" || { echo "❌ install 垫片未生效" >&2; exit 1; }
 
 echo "🔄 更新全部 feeds（克隆 feed 目录）..."
 ./scripts/feeds update -a

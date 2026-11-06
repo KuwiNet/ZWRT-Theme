@@ -51,20 +51,11 @@ if [ ! -d openwrt-sdk ]; then
   mv openwrt-sdk-* openwrt-sdk
 fi
 
-# runner 镜像（Ubuntu 25.10+）默认把 coreutils 换成 uutils（Rust 版），install --version 不含 GNU，
-# 会让 OpenWrt 预检报 "Please install GNU 'install'"。FORCE=1 对 prepare-tmpinfo 里的 .prereq-build 不生效，
-# 所以这里先尝试换成 GNU 实现；换不到就直接 touch 预检戳记跳过整套 host 依赖检查（依赖已由 workflow apt 装好）。
+# 主线快照的 host 预检没有 GNU install 这一项，但预检本身必须在 staging_dir/host/bin 里
+# 生成 gcc 等宿主工具软链，绝不能跳过（跳过会导致 lua 等 host 包编译时找不到编译器）。
+# runner 镜像（Ubuntu 25.10+）的 install 是 uutils 版，对主线没有影响，这里只做信息提示。
 if ! install --version 2>/dev/null | grep -q 'GNU'; then
-  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)）：$(install --version 2>&1 | head -1)"
-  sudo apt-get install -y coreutils-from-gnu >/dev/null 2>&1 || sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
-  hash -r
-fi
-if install --version 2>/dev/null | grep -q 'GNU'; then
-  echo "✅ GNU install 就绪"
-else
-  echo "⚠️ 仍无 GNU install，跳过 OpenWrt host 预检（touch staging_dir/host/.prereq-build）"
-  mkdir -p openwrt-sdk/staging_dir/host
-  touch openwrt-sdk/staging_dir/host/.prereq-build
+  echo "ℹ️ install 非 GNU 版本（$(install --version 2>&1 | head -1)）；主线预检不检查它，继续正常执行预检"
 fi
 
 echo "=== Step 4: 复制主题到 SDK ==="
@@ -89,11 +80,11 @@ if [ -f "$LUCIMK" ] && grep -q 'cc -o contrib/lemon' "$LUCIMK"; then
 fi
 
 ./scripts/feeds install -p luci luci-base
-make defconfig >/dev/null 2>&1 || true
+make defconfig 2>&1 | tail -40 || true
 echo "--- 关闭 ucode 模板预编译（否则产物要求 ucode>=2026.02.27，旧固件无法安装） ---"
 sed -i '/^CONFIG_LUCI_UTMIN=/d' .config
 echo '# CONFIG_LUCI_UTMIN is not set' >> .config
-make defconfig >/dev/null 2>&1 || true
+make defconfig 2>&1 | tail -40 || true
 grep -q '^# CONFIG_LUCI_UTMIN is not set' .config && echo "  ok: CONFIG_LUCI_UTMIN=n" || { echo "关闭 LUCI_UTMIN 失败" >&2; exit 1; }
 echo "--- 开始编译（V=99 完整输出） ---"
 make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
