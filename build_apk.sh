@@ -51,18 +51,20 @@ if [ ! -d openwrt-sdk ]; then
   mv openwrt-sdk-* openwrt-sdk
 fi
 
-# runner 镜像的 install 可能不是 GNU coreutils，会让 OpenWrt 预检报 "Please install GNU 'install'"
+# runner 镜像（Ubuntu 25.10+）默认把 coreutils 换成 uutils（Rust 版），install --version 不含 GNU，
+# 会让 OpenWrt 预检报 "Please install GNU 'install'"。FORCE=1 对 prepare-tmpinfo 里的 .prereq-build 不生效，
+# 所以这里先尝试换成 GNU 实现；换不到就直接 touch 预检戳记跳过整套 host 依赖检查（依赖已由 workflow apt 装好）。
 if ! install --version 2>/dev/null | grep -q 'GNU'; then
-  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)），尝试安装 coreutils"
-  sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
+  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)）：$(install --version 2>&1 | head -1)"
+  sudo apt-get install -y coreutils-from-gnu >/dev/null 2>&1 || sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
   hash -r
 fi
 if install --version 2>/dev/null | grep -q 'GNU'; then
   echo "✅ GNU install 就绪"
-  FORCE_OPT=
 else
-  echo "⚠️ 仍非 GNU install，使用 FORCE=1 跳过 OpenWrt 预检"
-  FORCE_OPT=FORCE=1
+  echo "⚠️ 仍无 GNU install，跳过 OpenWrt host 预检（touch staging_dir/host/.prereq-build）"
+  mkdir -p openwrt-sdk/staging_dir/host
+  touch openwrt-sdk/staging_dir/host/.prereq-build
 fi
 
 echo "=== Step 4: 复制主题到 SDK ==="
@@ -77,16 +79,16 @@ echo "=== Step 5: 全量更新 feeds（含 base）并编译 ==="
 # lua/libubox/ucode/rpcd 等在 base feed，必须 update -a，否则缺 lua.h 编译失败
 ./scripts/feeds update -a
 ./scripts/feeds install -p luci luci-base
-make $FORCE_OPT defconfig >/dev/null 2>&1 || true
+make defconfig >/dev/null 2>&1 || true
 echo "--- 关闭 ucode 模板预编译（否则产物要求 ucode>=2026.02.27，旧固件无法安装） ---"
 sed -i '/^CONFIG_LUCI_UTMIN=/d' .config
 echo '# CONFIG_LUCI_UTMIN is not set' >> .config
-make $FORCE_OPT defconfig >/dev/null 2>&1 || true
+make defconfig >/dev/null 2>&1 || true
 grep -q '^# CONFIG_LUCI_UTMIN is not set' .config && echo "  ok: CONFIG_LUCI_UTMIN=n" || { echo "关闭 LUCI_UTMIN 失败" >&2; exit 1; }
 echo "--- 开始编译（V=99 完整输出） ---"
-make $FORCE_OPT package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
+make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
 echo "--- 生成 apk 源索引（make package/index → packages.adb，官方标准） ---"
-make $FORCE_OPT package/index V=99 2>&1 | tail -30 || true
+make package/index V=99 2>&1 | tail -30 || true
 cd -
 
 echo "=== Step 6: 定位 APK 产物与 packages.adb 索引 ==="

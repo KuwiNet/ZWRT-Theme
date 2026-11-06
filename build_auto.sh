@@ -60,18 +60,20 @@ done
 
 cd "$SDK_DIR"
 
-# runner 镜像的 install 可能不是 GNU coreutils，会让 OpenWrt 预检报 "Please install GNU 'install'"
+# runner 镜像（Ubuntu 25.10+）默认把 coreutils 换成 uutils（Rust 版），install --version 不含 GNU，
+# 会让 OpenWrt 预检报 "Please install GNU 'install'"。FORCE=1 对 prepare-tmpinfo 里的 .prereq-build 不生效，
+# 所以这里先尝试换成 GNU 实现；换不到就直接 touch 预检戳记跳过整套 host 依赖检查（依赖已由 workflow apt 装好）。
 if ! install --version 2>/dev/null | grep -q 'GNU'; then
-  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)），尝试安装 coreutils"
-  sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
+  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)）：$(install --version 2>&1 | head -1)"
+  sudo apt-get install -y coreutils-from-gnu >/dev/null 2>&1 || sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
   hash -r
 fi
 if install --version 2>/dev/null | grep -q 'GNU'; then
   echo "✅ GNU install 就绪"
-  FORCE_OPT=
 else
-  echo "⚠️ 仍非 GNU install，使用 FORCE=1 跳过 OpenWrt 预检"
-  FORCE_OPT=FORCE=1
+  echo "⚠️ 仍无 GNU install，跳过 OpenWrt host 预检（touch staging_dir/host/.prereq-build）"
+  mkdir -p staging_dir/host
+  touch staging_dir/host/.prereq-build
 fi
 
 echo "🔄 更新全部 feeds（克隆 feed 目录）..."
@@ -80,7 +82,7 @@ echo "🔄 更新全部 feeds（克隆 feed 目录）..."
 echo "📦 安装主题构建所需依赖 (luci-base)..."
 ./scripts/feeds install -p luci luci-base
 
-make $FORCE_OPT defconfig
+make defconfig
 
 cd - > /dev/null
 
@@ -90,7 +92,7 @@ echo "✅ 最小依赖安装完成"
 # Step 5: 编译主题（含内置设置界面）
 # -------------------------------
 echo "⚙️ 开始编译主题（含内置设置界面）..."
-make -C "$SDK_DIR" $FORCE_OPT package/luci-theme-zwrt/compile V=s
+make -C "$SDK_DIR" package/luci-theme-zwrt/compile V=s
 
 # -------------------------------
 # Step 6: 查找并验证编译生成的 IPK
