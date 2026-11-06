@@ -25,7 +25,7 @@ def main():
     pkg = b"luci-theme-zwrt"
     idx = raw.find(pkg)
     if idx < 0:
-        sys.exit("索引中找不到 luci-theme-zwrt")
+        sys.exit(f"索引中找不到 luci-theme-zwrt（可能选错了 packages.adb）: {path}")
     window = raw[idx : idx + 600]
     hit = re.search(b"\x05ucode([^\x00]*)", window)
     if not hit:

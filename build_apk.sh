@@ -94,8 +94,13 @@ cd -
 
 echo "=== Step 6: 定位 APK 产物与 packages.adb 索引 ==="
 APK=$(find openwrt-sdk/bin/packages -name "luci-theme-zwrt*.apk" | head -1)
-ADB=$(find openwrt-sdk/bin/packages -name "packages.adb" | head -1)
 [ -z "$APK" ] && { echo "未找到 luci-theme-zwrt.apk" >&2; exit 1; }
+# 索引必须取主题所在的那一个（bin/packages/<arch>/<feed>/packages.adb），
+# 不能随便挑一个 packages.adb——luci feed 的索引里没有本主题。
+ADB="${APK%/*}/packages.adb"
+if [ ! -f "$ADB" ]; then
+  ADB=$(find openwrt-sdk/bin/packages -name packages.adb | head -1)
+fi
 [ -z "$ADB" ] && { echo "未找到 packages.adb（make package/index 未生成）" >&2; exit 1; }
 echo "APK: $APK"; ls -lh "$APK"
 echo "ADB: $ADB"; ls -lh "$ADB"
