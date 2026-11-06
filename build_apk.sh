@@ -40,6 +40,11 @@ echo "=== Step 5: 全量更新 feeds（含 base）并编译 ==="
 ./scripts/feeds update -a
 ./scripts/feeds install -p luci luci-base
 make defconfig >/dev/null 2>&1 || true
+echo "--- 关闭 ucode 模板预编译（否则产物要求 ucode>=2026.02.27，旧固件无法安装） ---"
+sed -i '/^CONFIG_LUCI_UTMIN=/d' .config
+echo '# CONFIG_LUCI_UTMIN is not set' >> .config
+make defconfig >/dev/null 2>&1 || true
+grep -q '^# CONFIG_LUCI_UTMIN is not set' .config && echo "  ok: CONFIG_LUCI_UTMIN=n" || { echo "关闭 LUCI_UTMIN 失败" >&2; exit 1; }
 echo "--- 开始编译（V=99 完整输出） ---"
 make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
 echo "--- 生成 apk 源索引（make package/index → packages.adb，官方标准） ---"
@@ -53,6 +58,9 @@ ADB=$(find openwrt-sdk/bin/packages -name "packages.adb" | head -1)
 [ -z "$ADB" ] && { echo "未找到 packages.adb（make package/index 未生成）" >&2; exit 1; }
 echo "APK: $APK"; ls -lh "$APK"
 echo "ADB: $ADB"; ls -lh "$ADB"
+
+echo "--- 校验 ucode 依赖未被钉版本 ---"
+python3 scripts/check-apk-deps.py "$ADB" || { echo "依赖校验失败：产物要求过高版本 ucode，旧固件将无法安装" >&2; exit 1; }
 
 echo "=== Step 7: 生成多架构 apk 源（复制 apk + packages.adb 到各架构目录） ==="
 ARCHS=(x86_64 aarch64_cortex-a53 aarch64_cortex-a72 aarch64_cortex-a76 \
