@@ -15,16 +15,54 @@ sudo apt-get install -y zstd >/dev/null 2>&1 || true
 
 echo "=== Step 3: 动态获取官方主线 SDK ==="
 SDK_BASE="https://downloads.openwrt.org/snapshots/targets/x86/64"
-SDK_FILE=$(curl -s "$SDK_BASE/" | grep -o 'openwrt-sdk-x86-64_gcc-[^"<>]*\.tar\.zst' | head -1)
+SDK_FILE=$(curl -s --max-time 60 "$SDK_BASE/" | grep -o 'openwrt-sdk-x86-64_gcc-[^"<>]*\.tar\.zst' | head -1)
 [ -z "$SDK_FILE" ] && { echo "无法找到主线 SDK" >&2; exit 1; }
 SDK_URL="$SDK_BASE/$SDK_FILE"
-echo "SDK: $SDK_URL"
+echo "SDK: $SDK_FILE"
+
+# downloads.openwrt.org 对 CI 常限速/超时，增加 USTC 镜像回退 + 断点续传 + 完整性校验
+SDK_MIRRORS=(
+  "$SDK_BASE"
+  "https://mirrors.ustc.edu.cn/openwrt/snapshots/targets/x86/64"
+)
 
 if [ ! -d openwrt-sdk ]; then
-  echo "⬇️ 下载 SDK（约 290MB）..."
-  curl -sL --retry 3 --retry-delay 5 "$SDK_URL" -o sdk.tar.zst || { echo "SDK 下载失败" >&2; exit 1; }
+  got=
+  for base in "${SDK_MIRRORS[@]}"; do
+    for attempt in 1 2 3; do
+      echo "⬇️ 下载 SDK（$base，第 $attempt 次，约 290MB）..."
+      rm -f sdk.tar.zst.part
+      if curl -fL --connect-timeout 30 --retry 3 --retry-delay 5 --retry-all-errors \
+           --speed-limit 4096 --speed-time 60 \
+           "$base/$SDK_FILE" -o sdk.tar.zst.part \
+         && mv sdk.tar.zst.part sdk.tar.zst \
+         && tar --zstd -tf sdk.tar.zst >/dev/null 2>&1; then
+        got=1
+        break
+      fi
+      echo "   该镜像第 $attempt 次失败，稍后重试"
+      sleep 10
+    done
+    [ "$got" = 1 ] && break
+  done
+  [ "$got" = 1 ] || { echo "SDK 下载失败（官方与 USTC 镜像均已重试）" >&2; exit 1; }
+  echo "✅ SDK 下载完成，解压中..."
   tar --zstd -xf sdk.tar.zst
   mv openwrt-sdk-* openwrt-sdk
+fi
+
+# runner 镜像的 install 可能不是 GNU coreutils，会让 OpenWrt 预检报 "Please install GNU 'install'"
+if ! install --version 2>/dev/null | grep -q 'GNU'; then
+  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)），尝试安装 coreutils"
+  sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
+  hash -r
+fi
+if install --version 2>/dev/null | grep -q 'GNU'; then
+  echo "✅ GNU install 就绪"
+  FORCE_OPT=
+else
+  echo "⚠️ 仍非 GNU install，使用 FORCE=1 跳过 OpenWrt 预检"
+  FORCE_OPT=FORCE=1
 fi
 
 echo "=== Step 4: 复制主题到 SDK ==="
@@ -39,16 +77,16 @@ echo "=== Step 5: 全量更新 feeds（含 base）并编译 ==="
 # lua/libubox/ucode/rpcd 等在 base feed，必须 update -a，否则缺 lua.h 编译失败
 ./scripts/feeds update -a
 ./scripts/feeds install -p luci luci-base
-make defconfig >/dev/null 2>&1 || true
+make $FORCE_OPT defconfig >/dev/null 2>&1 || true
 echo "--- 关闭 ucode 模板预编译（否则产物要求 ucode>=2026.02.27，旧固件无法安装） ---"
 sed -i '/^CONFIG_LUCI_UTMIN=/d' .config
 echo '# CONFIG_LUCI_UTMIN is not set' >> .config
-make defconfig >/dev/null 2>&1 || true
+make $FORCE_OPT defconfig >/dev/null 2>&1 || true
 grep -q '^# CONFIG_LUCI_UTMIN is not set' .config && echo "  ok: CONFIG_LUCI_UTMIN=n" || { echo "关闭 LUCI_UTMIN 失败" >&2; exit 1; }
 echo "--- 开始编译（V=99 完整输出） ---"
-make package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
+make $FORCE_OPT package/luci-theme-zwrt/compile V=99 2>&1 | tail -200 || { echo "编译失败" >&2; exit 1; }
 echo "--- 生成 apk 源索引（make package/index → packages.adb，官方标准） ---"
-make package/index V=99 2>&1 | tail -30 || true
+make $FORCE_OPT package/index V=99 2>&1 | tail -30 || true
 cd -
 
 echo "=== Step 6: 定位 APK 产物与 packages.adb 索引 ==="

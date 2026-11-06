@@ -60,13 +60,27 @@ done
 
 cd "$SDK_DIR"
 
+# runner 镜像的 install 可能不是 GNU coreutils，会让 OpenWrt 预检报 "Please install GNU 'install'"
+if ! install --version 2>/dev/null | grep -q 'GNU'; then
+  echo "⚠️ install 非 GNU 版本（$(command -v install 2>/dev/null)），尝试安装 coreutils"
+  sudo apt-get install -y --reinstall coreutils >/dev/null 2>&1 || true
+  hash -r
+fi
+if install --version 2>/dev/null | grep -q 'GNU'; then
+  echo "✅ GNU install 就绪"
+  FORCE_OPT=
+else
+  echo "⚠️ 仍非 GNU install，使用 FORCE=1 跳过 OpenWrt 预检"
+  FORCE_OPT=FORCE=1
+fi
+
 echo "🔄 更新全部 feeds（克隆 feed 目录）..."
 ./scripts/feeds update -a
 
 echo "📦 安装主题构建所需依赖 (luci-base)..."
 ./scripts/feeds install -p luci luci-base
 
-make defconfig
+make $FORCE_OPT defconfig
 
 cd - > /dev/null
 
@@ -76,7 +90,7 @@ echo "✅ 最小依赖安装完成"
 # Step 5: 编译主题（含内置设置界面）
 # -------------------------------
 echo "⚙️ 开始编译主题（含内置设置界面）..."
-make -C "$SDK_DIR" package/luci-theme-zwrt/compile V=s
+make -C "$SDK_DIR" $FORCE_OPT package/luci-theme-zwrt/compile V=s
 
 # -------------------------------
 # Step 6: 查找并验证编译生成的 IPK
